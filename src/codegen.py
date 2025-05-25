@@ -6,11 +6,10 @@ def codegen():
     source_dir = os.path.abspath("./bindings/codegen")
     build_dir = os.path.abspath("./bindings/codegen/build")
     executable = os.path.join(build_dir, "Codegen.exe")
+    release_executable = os.path.join(build_dir, "Release", "Codegen.exe")
 
-    # Create build directory if it doesn't exist
     os.makedirs(build_dir, exist_ok=True)
 
-    # Step 1: Configure CMake
     cmake_configure_cmd = [
         "cmake",
         "-S", source_dir,
@@ -25,11 +24,10 @@ def codegen():
         print(result.stderr)
         sys.exit(1)
 
-    # Step 2: Build with CMake
     cmake_build_cmd = [
         "cmake",
         "--build", build_dir,
-        "--config", "Release"  # or Debug if you want
+        "--config", "Release"
     ]
 
     print("Building project...")
@@ -40,13 +38,18 @@ def codegen():
         print(result.stderr)
         sys.exit(1)
 
-    # Step 3: Run the executable with the specified arguments
-    if not os.path.isfile(executable):
-        print(f"Executable not found: {executable}")
+    if os.path.isfile(executable):
+        exe_to_run = executable
+    elif os.path.isfile(release_executable):
+        exe_to_run = release_executable
+    else:
+        print(f"Executable not found in expected locations:")
+        print(f"  {executable}")
+        print(f"  {release_executable}")
         sys.exit(1)
 
     args = [
-        executable,
+        exe_to_run,
         "Win64",
         "bindings/bindings/2.2074",
         "./"

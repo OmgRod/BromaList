@@ -23,9 +23,6 @@ jobs:
       - name: Install dependencies with Poetry
         run: poetry install
 
-      - name: List bindings/codegen folder
-        run: ls bindings/codegen
-
       - name: Run main.py
         run: poetry run python main.py
 
