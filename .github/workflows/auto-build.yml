@@ -1,4 +1,4 @@
-name: Auto Update Website
+name: Update Website
 
 on:
   schedule:
@@ -8,7 +8,7 @@ on:
       - main
 
 jobs:
-  run-hourly-windows:
+  update:
     runs-on: windows-latest
 
     steps:
