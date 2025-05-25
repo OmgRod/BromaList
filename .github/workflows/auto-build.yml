@@ -22,7 +22,7 @@ jobs:
         run: poetry install
 
       - name: List bindings/codegen folder
-        run: ls -la bindings/codegen
+        run: ls bindings/codegen
 
       - name: Run main.py
         run: poetry run python main.py
