@@ -5,45 +5,106 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>PyBroma Bindings Explorer</title>
 <style>
+  :root {
+    --dark-bg: #121212;
+    --dark-sidebar-bg: #1E1E1E;
+    --dark-text: #ddd;
+    --dark-accent: #0A84FF;
+  }
   body {
     font-family: Arial, sans-serif;
     margin: 0; padding: 0;
-    display: flex; height: 100vh;
+    display: flex;
+    height: 100vh;
+    color: #333;
+    background: #f9f9f9;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  body.dark {
+    background: var(--dark-bg);
+    color: var(--dark-text);
   }
   #sidebar {
-    width: 280px;
+    width: 320px;
     background-color: #222;
     color: #eee;
     overflow-y: auto;
     padding: 10px;
+    display: flex;
+    flex-direction: column;
   }
-  #sidebar h2 {
-    margin-top: 0;
+  body.dark #sidebar {
+    background-color: var(--dark-sidebar-bg);
+  }
+  #sidebar header {
+    position: sticky;
+    top: 0;
+    background: inherit;
+    z-index: 10;
+    padding-bottom: 8px;
     border-bottom: 1px solid #444;
-    padding-bottom: 10px;
-    font-size: 1.4em;
+  }
+  #sidebar header h2 {
+    margin: 0;
+    font-size: 1.5em;
+  }
+  #class-count {
+    font-weight: normal;
+    font-size: 0.9em;
+    color: #bbb;
+  }
+  #search-box, #member-filter, #sort-select {
+    width: 100%;
+    padding: 6px 8px;
+    margin: 6px 0 10px 0;
+    border-radius: 4px;
+    border: none;
+    font-size: 1em;
+    box-sizing: border-box;
+  }
+  #search-box {
+    background: #333;
+    color: #eee;
+  }
+  body.dark #search-box {
+    background: #444;
+  }
+  #member-filter, #sort-select {
+    background: #444;
+    color: #eee;
   }
   #class-list {
     list-style: none;
     padding-left: 0;
     margin: 0;
+    flex-grow: 1;
+    overflow-y: auto;
   }
   #class-list li {
     cursor: pointer;
     padding: 8px 12px;
     border-radius: 4px;
+    user-select: none;
   }
-  #class-list li:hover {
+  #class-list li:hover, #class-list li:focus {
     background-color: #444;
+    outline: none;
   }
   #class-list li.active {
     background-color: #007acc;
+    color: white;
+    font-weight: bold;
   }
   #content {
     flex-grow: 1;
     padding: 20px;
     overflow-y: auto;
-    background-color: #f9f9f9;
+    background-color: #fff;
+    transition: background-color 0.3s, color 0.3s;
+  }
+  body.dark #content {
+    background-color: var(--dark-bg);
+    color: var(--dark-text);
   }
   h1 {
     margin-top: 0;
@@ -53,6 +114,9 @@
     margin-bottom: 1em;
     color: #555;
   }
+  body.dark .inherits {
+    color: #bbb;
+  }
   table {
     border-collapse: collapse;
     width: 100%;
@@ -61,106 +125,392 @@
   th, td {
     border: 1px solid #ccc;
     padding: 8px;
+    vertical-align: middle;
+  }
+  body.dark th, body.dark td {
+    border-color: #444;
   }
   th {
     background-color: #333;
     color: white;
     text-align: left;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+  body.dark th {
+    background-color: #222;
   }
   .platform-address {
     font-family: monospace;
     color: #007700;
   }
+  body.dark .platform-address {
+    color: #4CAF50;
+  }
   .type-info {
     color: #555;
+  }
+  body.dark .type-info {
+    color: #bbb;
+  }
+  .tooltip {
+    position: relative;
+    display: inline-block;
+    cursor: help;
+  }
+  .tooltip .tooltiptext {
+    visibility: hidden;
+    width: 160px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 5px;
+    padding: 5px 8px;
+    position: absolute;
+    z-index: 20;
+    bottom: 125%; 
+    left: 50%;
+    margin-left: -80px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    font-size: 0.9em;
+  }
+  .tooltip:hover .tooltiptext {
+    visibility: visible;
+    opacity: 1;
+  }
+  button.copy-btn {
+    background: #eee;
+    border: none;
+    border-radius: 4px;
+    padding: 2px 6px;
+    margin-left: 6px;
+    cursor: pointer;
+    font-size: 0.8em;
+    vertical-align: middle;
+  }
+  body.dark button.copy-btn {
+    background: #444;
+    color: #ddd;
+  }
+  button.copy-btn:hover {
+    background: #ccc;
+  }
+  #pagination {
+    text-align: center;
+    margin-bottom: 1em;
+  }
+  #pagination button {
+    margin: 0 4px;
+    padding: 6px 12px;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+  }
+  #pagination button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  #dark-mode-toggle {
+    margin-top: 10px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    border: none;
+    background: #007acc;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  #dark-mode-toggle:hover {
+    background: #005f99;
+  }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    body {
+      flex-direction: column;
+      height: auto;
+    }
+    #sidebar {
+      width: 100%;
+      height: 250px;
+      overflow-y: auto;
+      order: 2;
+    }
+    #content {
+      height: calc(100vh - 250px);
+      overflow-y: auto;
+      order: 1;
+    }
   }
 </style>
 </head>
 <body>
 
-<div id="sidebar">
-  <h2>Classes ({{ classes|length }})</h2>
-  <ul id="class-list">
-    {% for cls in classes %}
-      <li data-index="{{ loop.index0 }}">{{ cls.name }}</li>
-    {% endfor %}
+<div id="sidebar" role="navigation" aria-label="Class list navigation">
+  <header>
+    <h2>Classes (<span id="class-count">{{ classes|length }}</span>)</h2>
+    <input type="search" id="search-box" placeholder="Search classes or members..." aria-label="Search classes and members" />
+    <select id="member-filter" aria-label="Filter members by type">
+      <option value="all" selected>All members</option>
+      <option value="function">Functions only</option>
+      <option value="field">Fields only</option>
+    </select>
+    <select id="sort-select" aria-label="Sort classes by name">
+      <option value="asc" selected>Sort A-Z</option>
+      <option value="desc">Sort Z-A</option>
+    </select>
+    <button id="dark-mode-toggle" aria-pressed="false">Toggle Dark Mode</button>
+  </header>
+  <ul id="class-list" tabindex="0" aria-label="List of classes">
+    <!-- classes rendered by JS -->
   </ul>
 </div>
 
-<div id="content">
-  <h1>Select a class to view details</h1>
-</div>
+<main id="content" tabindex="0" role="main" aria-live="polite">
+  <p>Select a class to see its members.</p>
+</main>
 
 <script>
-  const classes = {{ classes | tojson | safe }};
-  const classListEl = document.getElementById('class-list');
-  const contentEl = document.getElementById('content');
+  const classes = {{ classes|tojson|safe }};
 
-  function renderClass(cls) {
-    const inherits = cls.inherits.length ? cls.inherits.join(', ') : 'None';
+  let filteredClasses = classes.slice();
+  let selectedClassIndex = null;
+  let memberFilter = "all";
+  let sortOrder = "asc";
+  let searchTerm = "";
+  const pageSize = 20;
+  let currentPage = 1;
 
-    let html = `<h1>${cls.name}</h1>`;
-    html += `<div class="inherits"><strong>Inherits:</strong> ${inherits}</div>`;
+  const classListEl = document.getElementById("class-list");
+  const contentEl = document.getElementById("content");
+  const searchBox = document.getElementById("search-box");
+  const memberFilterEl = document.getElementById("member-filter");
+  const sortSelectEl = document.getElementById("sort-select");
+  const classCountEl = document.getElementById("class-count");
+  const darkModeToggle = document.getElementById("dark-mode-toggle");
 
-    html += `<table><thead><tr>
-      <th>Name</th>
-      <th>Args</th>
-      <th>Win Addr</th>
-      <th>Mac Addr</th>
-      <th>iOS Addr</th>
-      <th>Type</th>
-    </tr></thead><tbody>`;
+  // Utility: format address for display with copy button
+  function renderAddress(addr) {
+  if (!addr) return "-";
+    if (addr === "inline") return `<span class="platform-address">inline</span>`;
+    return `<span class="platform-address">${addr}</span> <button class="copy-btn" aria-label="Copy address ${addr}" onclick="copyText('${addr}', event)">📋</button>`;
+  }
 
-    cls.members.forEach(member => {
-      const args = member.args
-        ? (typeof member.args === 'object'
-            ? Object.entries(member.args).map(([k,v]) => `${k}: ${v}`).join(', ')
-            : member.args)
-        : '';
+  // Copy helper
+  function copyText(text, evt) {
+    evt.stopPropagation();
+    navigator.clipboard.writeText(text).then(() => {
+      alert(`Copied ${text} to clipboard`);
+    }).catch(() => {
+      alert("Failed to copy text");
+    });
+  }
 
-      function showAddr(addr) {
-        return addr ? `<span class="platform-address">${addr}</span>` : `<span style="color:#999;">None</span>`;
+  // Render class list
+  function renderClassList() {
+    // Filter classes by search term on class name or members
+    filteredClasses = classes.filter(cls => {
+      const className = cls.name.toLowerCase();
+      if (searchTerm && !className.includes(searchTerm)) {
+        // also search in members
+        if (!cls.members.some(m => m.name.toLowerCase().includes(searchTerm))) {
+          return false;
+        }
       }
+      return true;
+    });
 
-      const winAddr = member.addresses?.win || null;
-      const macAddr = member.addresses?.mac || null;
-      const iosAddr = member.addresses?.ios || null;
-      const typeInfo = member.type || 'Function';
+    // Sort classes by name
+    filteredClasses.sort((a, b) => {
+      if (sortOrder === "asc") {
+        return a.name.localeCompare(b.name);
+      } else {
+        return b.name.localeCompare(a.name);
+      }
+    });
 
+    classCountEl.textContent = filteredClasses.length;
+
+    // Render list
+    classListEl.innerHTML = "";
+    filteredClasses.forEach((cls, index) => {
+      const li = document.createElement("li");
+      li.textContent = cls.name;
+      li.tabIndex = 0;
+      li.setAttribute("role", "button");
+      li.setAttribute("aria-pressed", selectedClassIndex === index ? "true" : "false");
+      if (index === selectedClassIndex) li.classList.add("active");
+      li.onclick = () => {
+        selectedClassIndex = index;
+        renderClassList();
+        renderContent();
+        li.focus();
+      };
+      li.onkeydown = (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          li.click();
+        }
+      };
+      classListEl.appendChild(li);
+    });
+
+    if (selectedClassIndex !== null && selectedClassIndex >= filteredClasses.length) {
+      selectedClassIndex = null;
+      renderContent();
+    }
+  }
+
+  // Render class content (members table)
+  function renderContent() {
+    if (selectedClassIndex === null || !filteredClasses[selectedClassIndex]) {
+      contentEl.innerHTML = `<p>Select a class to see its members.</p>`;
+      return;
+    }
+
+    const cls = filteredClasses[selectedClassIndex];
+
+    // Filter members by type
+    let members = cls.members;
+    if (memberFilter !== "all") {
+      members = members.filter(m => m.type.toLowerCase() === memberFilter);
+    }
+
+    // Pagination
+    const totalPages = Math.ceil(members.length / pageSize);
+    if (currentPage > totalPages) currentPage = 1;
+    const startIdx = (currentPage - 1) * pageSize;
+    const endIdx = startIdx + pageSize;
+    const pageMembers = members.slice(startIdx, endIdx);
+
+    // Inherits display
+    const inheritsText = cls.inherits.length > 0 ? cls.inherits.join(", ") : "None";
+
+    // Build members table
+    let html = `
+      <h1>${cls.name}</h1>
+      <p class="inherits"><strong>Inherits:</strong> ${inheritsText}</p>
+
+      <label for="member-filter" style="font-weight:bold;">Filter members:</label>
+      <select id="member-filter-content" aria-label="Filter members by type">
+        <option value="all" ${memberFilter === "all" ? "selected" : ""}>All members</option>
+        <option value="function" ${memberFilter === "function" ? "selected" : ""}>Functions only</option>
+        <option value="field" ${memberFilter === "field" ? "selected" : ""}>Fields only</option>
+      </select>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Name <span class="tooltip">?<span class="tooltiptext">Member name and arguments</span></span></th>
+            <th>Type <span class="tooltip">?<span class="tooltiptext">Function or Field</span></span></th>
+            <th>Windows <span class="tooltip">?<span class="tooltiptext">Windows address</span></span></th>
+            <th>macOS Intel <span class="tooltip">?<span class="tooltiptext">macOS Intel address</span></span></th>
+            <th>macOS ARM <span class="tooltip">?<span class="tooltiptext">Apple Silicon address</span></span></th>
+            <th>iOS <span class="tooltip">?<span class="tooltiptext">iOS address</span></span></th>
+            <th>Android 32-bit <span class="tooltip">?<span class="tooltiptext">Android 32-bit address</span></span></th>
+            <th>Android 64-bit <span class="tooltip">?<span class="tooltiptext">Android 64-bit address</span></span></th>
+          </tr>
+        </thead>
+        <tbody>`;
+
+    pageMembers.forEach(m => {
+      let nameHtml = m.name;
+      if (m.type === "Function" && m.args.length > 0) {
+        nameHtml += "(" + m.args.join(", ") + ")";
+      } else if (m.type === "Function") {
+        nameHtml += "()";
+      }
+      const addresses = m.addresses || {};
       html += `<tr>
-        <td>${member.name}</td>
-        <td>${args}</td>
-        <td>${showAddr(winAddr)}</td>
-        <td>${showAddr(macAddr)}</td>
-        <td>${showAddr(iosAddr)}</td>
-        <td class="type-info">${typeInfo}</td>
+        <td>${nameHtml}</td>
+        <td class="type-info">${m.type}</td>
+        <td>${renderAddress(addresses.win)}</td>
+        <td>${renderAddress(addresses.mac)}</td>
+        <td>${renderAddress(addresses.m1)}</td>
+        <td>${renderAddress(addresses.ios)}</td>
+        <td>${renderAddress(addresses.android32)}</td>
+        <td>${renderAddress(addresses.android64)}</td>
       </tr>`;
     });
 
-    html += '</tbody></table>';
+    html += `
+        </tbody>
+      </table>
+      <div id="pagination" aria-label="Pagination navigation">
+        <button id="prev-page" ${currentPage === 1 ? "disabled" : ""} aria-disabled="${currentPage === 1}">Prev</button>
+        <span>Page ${currentPage} / ${totalPages}</span>
+        <button id="next-page" ${currentPage === totalPages ? "disabled" : ""} aria-disabled="${currentPage === totalPages}">Next</button>
+      </div>
+    `;
 
-    return html;
+    contentEl.innerHTML = html;
+
+    // Pagination buttons handlers
+    document.getElementById("prev-page").onclick = () => {
+      if (currentPage > 1) {
+        currentPage--;
+        renderContent();
+      }
+    };
+    document.getElementById("next-page").onclick = () => {
+      if (currentPage < totalPages) {
+        currentPage++;
+        renderContent();
+      }
+    };
+
+    // Member filter inside content (sync with sidebar filter)
+    const memberFilterContentEl = document.getElementById("member-filter-content");
+    memberFilterContentEl.onchange = (e) => {
+      memberFilter = e.target.value;
+      currentPage = 1;
+      // Update sidebar filter too
+      memberFilterEl.value = memberFilter;
+      renderContent();
+    };
   }
 
-  function clearActive() {
-    document.querySelectorAll('#class-list li').forEach(li => li.classList.remove('active'));
+  // Search box handler
+  searchBox.oninput = (e) => {
+    searchTerm = e.target.value.trim().toLowerCase();
+    selectedClassIndex = null;
+    currentPage = 1;
+    renderClassList();
+    renderContent();
+  };
+
+  // Member filter sidebar handler
+  memberFilterEl.onchange = (e) => {
+    memberFilter = e.target.value;
+    currentPage = 1;
+    renderContent();
+  };
+
+  // Sort select handler
+  sortSelectEl.onchange = (e) => {
+    sortOrder = e.target.value;
+    renderClassList();
+    renderContent();
+  };
+
+  // Dark mode toggle
+  darkModeToggle.onclick = () => {
+    const isDark = document.body.classList.toggle("dark");
+    darkModeToggle.setAttribute("aria-pressed", isDark);
+    localStorage.setItem("darkMode", isDark ? "true" : "false");
+  };
+
+  // Load saved dark mode
+  if (localStorage.getItem("darkMode") === "true") {
+    document.body.classList.add("dark");
+    darkModeToggle.setAttribute("aria-pressed", "true");
   }
 
-  classListEl.addEventListener('click', e => {
-    if (e.target.tagName !== 'LI') return;
-
-    clearActive();
-    e.target.classList.add('active');
-
-    const idx = parseInt(e.target.getAttribute('data-index'));
-    contentEl.innerHTML = renderClass(classes[idx]);
-  });
-
-  // Select first class by default
-  if (classes.length > 0) {
-    classListEl.children[0].classList.add('active');
-    contentEl.innerHTML = renderClass(classes[0]);
-  }
+  // Initial render
+  renderClassList();
+  renderContent();
 </script>
 
 </body>
