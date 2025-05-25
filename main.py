@@ -1,11 +1,11 @@
 import json
 import os
 from jinja2 import Environment, FileSystemLoader
+from src import codegen
 
 def format_addr(addr):
     if addr is None:
         return None
-    # Accept int or hex string (like "0x1234") and normalize
     if isinstance(addr, int):
         return f"0x{addr:X}"
     if isinstance(addr, str):
@@ -13,7 +13,6 @@ def format_addr(addr):
             if addr.startswith("0x") or addr.startswith("0X"):
                 return addr.lower()
             else:
-                # maybe decimal string?
                 intval = int(addr)
                 return f"0x{intval:X}"
         except Exception:
@@ -21,7 +20,6 @@ def format_addr(addr):
     return None
 
 def normalize_inherits(inherits):
-    # Some inherits might be list of strings, single string, or list of dicts with "name" key
     if not inherits:
         return []
     if isinstance(inherits, str):
@@ -37,7 +35,6 @@ def normalize_inherits(inherits):
     return []
 
 def main():
-    # Load JSON data
     with open("bindings/bindings/2.2074/Geode/CodegenData.json", "r", encoding="utf-8") as f:
         data = json.load(f)
 
@@ -47,19 +44,17 @@ def main():
         members = []
         seen_names = set()
 
-        # Process functions
         for func in cls.get("functions", []):
             bindings = func.get("bindings", {})
             addresses = {
                 "win": format_addr(bindings.get("win")),
-                "mac": format_addr(bindings.get("imac")),    # macOS Intel (consistent naming)
-                "m1": format_addr(bindings.get("m1")),        # macOS ARM (Apple Silicon)
+                "mac": format_addr(bindings.get("imac")),
+                "m1": format_addr(bindings.get("m1")),
                 "ios": format_addr(bindings.get("ios")),
                 "android32": format_addr(bindings.get("android32")),
                 "android64": format_addr(bindings.get("android64")),
             }
 
-            # Skip if all addresses None
             if all(addr is None for addr in addresses.values()):
                 continue
 
@@ -68,7 +63,6 @@ def main():
                 continue
             seen_names.add(name)
 
-            # Extract argument names; handle both list of dict or list of strings
             args = []
             for arg in func.get("args", []):
                 if isinstance(arg, dict):
@@ -77,7 +71,6 @@ def main():
                 else:
                     args.append(str(arg))
 
-            # Check if bindings are inline or not per platform
             inline_info = {}
             for platform, bind_val in bindings.items():
                 if isinstance(bind_val, str) and bind_val.lower() == "inline":
@@ -93,14 +86,12 @@ def main():
                 "type": "Function",
             })
 
-        # Process fields if present
         for field in cls.get("fields", []):
             name = field.get("name")
             if not name or name in seen_names:
                 continue
             seen_names.add(name)
 
-            # For fields, try to get addresses if available, else None
             bindings = field.get("bindings", {})
             addresses = {
                 "win": format_addr(bindings.get("win")),
@@ -110,7 +101,6 @@ def main():
                 "android32": format_addr(bindings.get("android32")),
                 "android64": format_addr(bindings.get("android64")),
             }
-            # If all None, just store None for addresses
             if all(addr is None for addr in addresses.values()):
                 addresses = None
 
@@ -119,7 +109,7 @@ def main():
                 "type": "Field",
                 "args": [],
                 "addresses": addresses,
-                "inline": None,  # fields don't have inline info
+                "inline": None,
             })
 
         classes.append({
@@ -128,14 +118,11 @@ def main():
             "members": members,
         })
 
-    # Setup Jinja2 environment and load template
     env = Environment(loader=FileSystemLoader("templates"))
     template = env.get_template("index.html.jinja")
 
-    # Render template with classes data
     output = template.render(classes=classes)
 
-    # Write output file
     os.makedirs("dist", exist_ok=True)
     with open("dist/index.html", "w", encoding="utf-8") as f:
         f.write(output)
@@ -143,4 +130,5 @@ def main():
     print("Static site generated at ./dist/index.html")
 
 if __name__ == "__main__":
+    codegen.codegen()
     main()
